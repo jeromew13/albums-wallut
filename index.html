@@ -87,6 +87,15 @@ textarea{min-height:5rem;resize:vertical}
 .actions{display:flex;gap:.5rem;margin-top:1.1rem;align-items:center;flex-wrap:wrap}
 #etat{font-size:.78rem;color:var(--vert)}
 #etat.erreur,#verrou-etat.erreur{color:#b4452f}
+#sommaire{display:grid;grid-template-columns:repeat(auto-fill,minmax(17rem,1fr));gap:1.4rem;padding:1.4rem clamp(1rem,2.5vw,2rem) 2rem}
+.album-carte{display:block;text-decoration:none;color:inherit;background:var(--carte);border:1px solid var(--filet);border-radius:4px;overflow:hidden}
+.album-carte:hover,.album-carte:focus-visible{border-color:var(--rouille);outline:none}
+.album-carte .couv{background:var(--fond-album);aspect-ratio:1.29;display:flex;align-items:center;justify-content:center;padding:.7rem}
+.album-carte .couv img{max-width:100%;max-height:100%;display:block}
+.album-carte h2{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;font-size:1.25rem;margin:.8rem 1rem .25rem;font-weight:600}
+.album-carte p{margin:0 1rem 1rem;font-size:.8rem;color:var(--encre-3)}
+#retour{color:var(--rouille);text-decoration:none;font-weight:600}
+#retour:hover{text-decoration:underline}
 footer{border-top:1px solid var(--filet);margin:0 clamp(1rem,2.5vw,2rem);padding:1rem 0 2rem;font-size:.75rem;color:var(--encre-3)}
 footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
 </style>
@@ -106,10 +115,12 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
 </div>
 <div id="app" hidden>
 <header>
-  <p class="eyebrow sans">Albums de famille · Laure Fuller</p>
+  <p class="eyebrow sans"><a id="retour" href="#">← Tous les albums</a><span id="eyebrow-som">Famille Wallut · les albums de Laure Fuller</span></p>
   <h1 id="titre">Albums de famille</h1>
-  <p class="aide">Cliquez sur une photo pour voir ce que la famille en sait, et y ajouter ce que vous savez. Les flèches de part et d’autre de la page, ou celles du clavier, tournent les pages.</p>
+  <p class="aide" id="aide"></p>
 </header>
+<section id="sommaire" class="sans" aria-label="Les albums"></section>
+<div id="vue-album">
 <div class="bar sans">
   <span id="num" role="status" aria-live="polite"></span>
   <span style="flex:1"></span>
@@ -118,6 +129,7 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
 </div>
 <div class="vue"><div class="cadre"><button id="prec" class="fleche g" type="button" aria-label="Page précédente">‹</button><div class="pagebox" id="pagebox"><img id="pageimg" alt=""></div><button id="suiv" class="fleche d" type="button" aria-label="Page suivante">›</button></div></div>
 <div class="vignettes sans" id="vignettes"></div>
+</div>
 <aside id="fiche" class="sans" aria-hidden="true" aria-label="Fiche de la photo"></aside>
 <footer class="sans">Les annotations sont partagées avec toute la famille et chiffrées par la phrase de passe. Un point vert sur une photo indique combien de personnes l'ont annotée.<button id="oublier" type="button">Oublier la phrase sur cet appareil</button></footer>
 </div>
@@ -203,7 +215,7 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
         } catch(e){}
       }
       etatC.textContent = '';
-      marquer();
+      marquer(); compter();
     } catch(e){ etatC.textContent = 'Le carnet partagé ne répond pas pour l’instant.'; }
   }
   function surPhoto(id){
@@ -224,19 +236,52 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
   function demarrer(){
     document.getElementById('verrou').hidden = true; document.getElementById('app').hidden = false;
     etatC = document.getElementById('carnet-etat');
-    P = D.pages;
-    var album = null;
+    D.pages.forEach(function(p){
+      var slug = p.code.split('-')[0], a = ALBUMS.filter(function(x){ return x.slug === slug; })[0];
+      if (!a){ a = {slug:slug, nom:p.album, pages:[]}; ALBUMS.push(a); }
+      a.pages.push(p);
+    });
+    sommaire.innerHTML = ALBUMS.map(function(a){
+      return '<a class="album-carte" href="#'+a.slug+'"><div class="couv"><img alt="" data-couv="'+a.pages[0].code+'"></div><h2>'+esc(a.nom)+'</h2><p data-compte="'+a.slug+'"></p></a>';
+    }).join('');
+    sommaire.querySelectorAll('img[data-couv]').forEach(function(im){ image('p/'+im.dataset.couv+'.bin').then(function(u){ im.src = u; }, function(){}); });
+    window.addEventListener('hashchange', route);
+    route();
+    charger();
+    setInterval(charger, 120000);
+  }
+
+  // Home page lists the albums; #bp, #ol open one album on its own
+  var ALBUMS = [], sommaire = document.getElementById('sommaire');
+  function route(){
+    var slug = location.hash.slice(1), a = ALBUMS.filter(function(x){ return x.slug === slug; })[0];
+    fermer();
+    document.getElementById('sommaire').hidden = !!a; document.getElementById('vue-album').hidden = !a;
+    document.getElementById('retour').hidden = !a; document.getElementById('eyebrow-som').hidden = !!a;
+    if (!a){
+      P = null;
+      document.getElementById('titre').textContent = 'Albums de famille';
+      document.getElementById('aide').textContent = 'Choisissez un album.';
+      compter(); window.scrollTo(0, 0); return;
+    }
+    P = a.pages; vig.innerHTML = '';
+    document.getElementById('aide').textContent = 'Cliquez sur une photo pour voir ce que la famille en sait, et y ajouter ce que vous savez. Les flèches de part et d\u2019autre de la page, ou celles du clavier, tournent les pages.';
     P.forEach(function(p,k){
-      if (p.album !== album){ album = p.album; var s=document.createElement('span'); s.className='sep'; s.textContent=album; vig.appendChild(s); }
       var b = document.createElement('button'); b.type='button'; b.setAttribute('aria-label', p.album+', page '+p.page);
       var im = document.createElement('img'); im.alt = ''; b.appendChild(im);
       image('v/'+p.code+'.bin').then(function(u){ im.src = u; }, function(){});
       b.addEventListener('click', function(){ afficher(k); });
       vig.appendChild(b);
     });
-    afficher(0);
-    charger();
-    setInterval(charger, 120000);
+    afficher(0); window.scrollTo(0, 0);
+  }
+  function compter(){
+    ALBUMS.forEach(function(a){
+      var photos = 0, annotees = 0;
+      a.pages.forEach(function(p){ p.zones.forEach(function(z){ photos++; if (surPhoto(z.id).length) annotees++; }); });
+      var el = sommaire.querySelector('[data-compte="'+a.slug+'"]');
+      if (el) el.textContent = a.pages.length + ' pages · ' + photos + ' photos · ' + (annotees ? annotees + ' déjà annotée' + (annotees > 1 ? 's' : '') : 'aucune encore annotée');
+    });
   }
 
   function afficher(k){
@@ -247,7 +292,7 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
     image('p/'+p.code+'.bin').then(function(u){ if (ici === i) img.src = u; }, function(){});
     [i-1, i+1].forEach(function(j){ if (P[j]) image('p/'+P[j].code+'.bin').catch(function(){}); });
     document.getElementById('titre').textContent = p.album;
-    document.getElementById('num').textContent = 'Page ' + p.page + ' · ' + (i+1) + ' sur ' + P.length;
+    document.getElementById('num').textContent = 'Page ' + p.page + ' sur ' + P.length;
     box.querySelectorAll('.zone').forEach(function(z){ z.remove(); });
     p.zones.forEach(function(z, n){
       var b = document.createElement('button');
@@ -457,7 +502,7 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
   });
   document.getElementById('exporter').addEventListener('click', function(){
     var tout = [];
-    P.forEach(function(p){ p.zones.forEach(function(z){ surPhoto(z.id).forEach(function(a){
+    D.pages.forEach(function(p){ p.zones.forEach(function(z){ surPhoto(z.id).forEach(function(a){
       tout.push({album:a.album, page:a.page, photo:a.numero, auteur:a.auteur, le:new Date(a.cree).toISOString().slice(0,10), personnes:a.personnes, date:a.date, lieu:a.lieu, occasion:a.occasion, souvenir:a.souvenir});
     }); }); });
     var blob = new Blob([JSON.stringify(tout,null,2)], {type:'application/json'});
