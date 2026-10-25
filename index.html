@@ -48,7 +48,11 @@ button.actif{border-color:var(--rouille);color:var(--rouille)}
 #fiche{position:fixed;inset:0;z-index:10;background:var(--carte);display:none;grid-template-columns:1fr minmax(20rem,28rem)}
 #fiche.ouverte{display:grid}
 #fiche .grande{background:var(--fond-album);display:flex;align-items:center;justify-content:center;padding:1rem;min-height:0}
-#fiche .grande img{max-width:100%;max-height:calc(100vh - 2rem);object-fit:contain;display:block;box-shadow:0 2px 18px rgba(0,0,0,.4)}
+#fiche .grande img{max-width:100%;max-height:calc(100vh - 2rem);object-fit:contain;display:block;box-shadow:0 2px 18px rgba(0,0,0,.4);transform-origin:center;transition:transform .15s;user-select:none;-webkit-user-drag:none}
+#fiche .grande{position:relative;overflow:hidden;touch-action:none;cursor:zoom-in}
+#fiche .grande.zoom{cursor:grab}
+#fiche .grande.glisse img{transition:none}
+.zoom-aide{position:absolute;bottom:.6rem;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;font-size:.75rem;padding:.25rem .65rem;border-radius:3px;pointer-events:none;white-space:nowrap}
 #fiche .form{position:relative;overflow-y:auto;padding:3rem 1.3rem 2rem;border-left:1px solid var(--filet)}
 @media (max-width:760px){#fiche{grid-template-columns:1fr;grid-template-rows:55vh auto;overflow-y:auto}#fiche .grande img{max-height:calc(55vh - 2rem)}#fiche .form{overflow-y:visible}}
 #fiche .fermer{position:absolute;top:.8rem;right:.8rem;font-size:.9rem;padding:.5rem .9rem;border-color:var(--encre-3);color:var(--encre)}
@@ -269,7 +273,7 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
     zoneCourante = el; el.classList.add('choisie');
     var nom = lire(AUTEUR) || '', moi = nom ? await idAuteur(nom) : '';
     var mien = surPhoto(z.id).filter(function(a){ return a.auteurId === moi; })[0] || {personnes:[]};
-    var h = '<div class="grande"><img id="f-img" alt="Photo '+(n+1)+', page '+p.page+'"></div><div class="form">';
+    var h = '<div class="grande"><img id="f-img" alt="Photo '+(n+1)+', page '+p.page+'" draggable="false"><span class="zoom-aide"></span></div><div class="form">';
     h += '<button class="fermer" type="button">Fermer ✕</button>';
     h += '<p class="meta">'+esc(p.album)+' · page '+p.page+'</p><h2>Photo '+(n+1)+'</h2>';
     if (p.legende) h += '<div class="legende">'+esc(p.legende)+'<small>Légende manuscrite de la page, recopiée depuis le scan : à vérifier.</small></div>';
@@ -285,6 +289,7 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
     h += '<div class="actions"><button id="f-ok" type="button" class="actif">Enregistrer pour la famille</button><span id="etat" role="status" aria-live="polite"></span></div></div>';
     fiche.innerHTML = h; fiche.classList.add('ouverte'); fiche.setAttribute('aria-hidden','false');
     image('f/'+z.id+'.bin').then(function(u){ var x = fiche.querySelector('#f-img'); if (x) x.src = u; }, function(){});
+    zoomable(fiche.querySelector('.grande'), fiche.querySelector('#f-img'), fiche.querySelector('.zoom-aide'));
     function montrerApports(){
       var l = surPhoto(z.id), zone = fiche.querySelector('#apports');
       if (zone) zone.innerHTML = l.length ? l.map(carte).join('') : '<p class="vide">Personne n’a encore annoté cette photo.</p>';
@@ -344,6 +349,58 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
       }
       btn.disabled = false;
     });
+  }
+  // Zoom in the photo: tap or click to enlarge where pointed, drag to move, pinch or wheel to adjust
+  function zoomable(cadre, im, aide){
+    var s = 1, tx = 0, ty = 0, pts = {}, depart = null, bouge = false, pince = null;
+    function point(e){ var r = cadre.getBoundingClientRect(); return {x:e.clientX - r.left - r.width/2, y:e.clientY - r.top - r.height/2}; }
+    function appliquer(){
+      var lx = Math.max(0, (im.offsetWidth*s - cadre.clientWidth)/2), ly = Math.max(0, (im.offsetHeight*s - cadre.clientHeight)/2);
+      tx = Math.max(-lx, Math.min(lx, tx)); ty = Math.max(-ly, Math.min(ly, ty));
+      im.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+s+')';
+      cadre.classList.toggle('zoom', s > 1);
+      aide.textContent = s > 1 ? 'Glissez pour vous déplacer, touchez pour revenir' : 'Touchez la photo pour l’agrandir';
+    }
+    // keep the pointed spot under the finger: t2 = p - s2 * (p - t) / s
+    function zoomer(p, s2){
+      s2 = Math.max(1, Math.min(4, s2));
+      tx = p.x - s2*(p.x - tx)/s; ty = p.y - s2*(p.y - ty)/s; s = s2;
+      if (s === 1) tx = ty = 0;
+      appliquer();
+    }
+    function deux(){ var v = Object.keys(pts).map(function(k){ return pts[k]; }); return {d:Math.hypot(v[0].x-v[1].x, v[0].y-v[1].y), m:{x:(v[0].x+v[1].x)/2, y:(v[0].y+v[1].y)/2}}; }
+    cadre.addEventListener('pointerdown', function(e){
+      cadre.setPointerCapture(e.pointerId); pts[e.pointerId] = point(e);
+      var n = Object.keys(pts).length;
+      if (n === 1){ depart = {x:pts[e.pointerId].x, y:pts[e.pointerId].y, tx:tx, ty:ty}; bouge = false; }
+      if (n === 2){ pince = {d:deux().d, s:s}; bouge = true; }
+      cadre.classList.add('glisse');
+    });
+    cadre.addEventListener('pointermove', function(e){
+      if (!pts[e.pointerId]) return;
+      pts[e.pointerId] = point(e);
+      var n = Object.keys(pts).length;
+      if (n === 2 && pince){ var g = deux(); zoomer(g.m, pince.s * g.d / pince.d); }
+      else if (n === 1 && depart){
+        var p = pts[e.pointerId], dx = p.x - depart.x, dy = p.y - depart.y;
+        if (Math.abs(dx) + Math.abs(dy) > 6) bouge = true;
+        if (bouge && s > 1){ tx = depart.tx + dx; ty = depart.ty + dy; appliquer(); }
+      }
+    });
+    function fin(e){
+      if (!pts[e.pointerId]) return;
+      var p = pts[e.pointerId]; delete pts[e.pointerId];
+      var reste = Object.keys(pts);
+      if (reste.length === 1){ var q = pts[reste[0]]; depart = {x:q.x, y:q.y, tx:tx, ty:ty}; pince = null; return; }
+      if (reste.length === 0){
+        cadre.classList.remove('glisse');
+        if (!bouge && e.type === 'pointerup') zoomer(p, s > 1 ? 1 : 2.5);
+        depart = null; pince = null;
+      }
+    }
+    cadre.addEventListener('pointerup', fin); cadre.addEventListener('pointercancel', fin);
+    cadre.addEventListener('wheel', function(e){ e.preventDefault(); zoomer(point(e), s * Math.exp(-e.deltaY * 0.004)); }, {passive:false});
+    appliquer();
   }
   function fermer(){ fiche.classList.remove('ouverte'); fiche.setAttribute('aria-hidden','true'); if (zoneCourante){ zoneCourante.classList.remove('choisie'); zoneCourante=null; } }
 
