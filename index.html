@@ -123,7 +123,7 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
 </div>
 <script>
 (function(){
-  var SEL = '063bbaa973ff04b3b3002baf6cd37ce4', ITER = 600000, CARNET = 'https://carnet-albums-wallut.jeromew13.workers.dev', MEMO = 'albums-wallut-cle', AUTEUR = 'albums-wallut-auteur';
+  var SEL = '063bbaa973ff04b3b3002baf6cd37ce4', ITER = 600000, CARNET = 'https://carnet-albums-wallut.jeromew13.workers.dev', MEMO = 'albums-wallut-cle', AUTEUR = 'albums-wallut-auteur', BROUILLONS = 'albums-wallut-brouillons';
   var te = new TextEncoder(), td = new TextDecoder(), S = crypto.subtle;
   var K = null, JETON = '', HM = null, D = null;
   function hex(u){ return Array.from(u, function(b){ return b.toString(16).padStart(2,'0'); }).join(''); }
@@ -186,7 +186,8 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
   document.getElementById('oublier').addEventListener('click', function(){ ecrire(MEMO, null); location.reload(); });
 
   // --- shared notebook: encrypted contributions, the latest of each author per photo counts
-  var apports = [], dernier = 0, etatC = null;
+  var apports = [], dernier = 0, etatC = null, brouillons = {};
+  try { brouillons = JSON.parse(lire(BROUILLONS) || '{}') || {}; } catch(e){}
   async function charger(){
     try {
       var r = await fetch(CARNET + '/notes?depuis=' + dernier, {headers:{Authorization:'Bearer ' + JETON}});
@@ -272,10 +273,14 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
 
   async function ouvrir(z, n, el){
     var p = P[i];
+    if (fiche._garder){ fiche._garder(); fiche._garder = null; }
     if (zoneCourante) zoneCourante.classList.remove('choisie');
     zoneCourante = el; el.classList.add('choisie'); photoCourante = n;
     var nom = lire(AUTEUR) || '', moi = nom ? await idAuteur(nom) : '';
     var mien = surPhoto(z.id).filter(function(a){ return a.auteurId === moi; })[0] || {personnes:[]};
+    // an unsaved draft left on this photo wins over the saved version
+    var br = brouillons[z.id], vu = br || mien;
+    if (br) nom = br.auteur;
     var h = '<div class="grande"><img id="f-img" alt="Photo '+(n+1)+', page '+p.page+'" draggable="false"><span class="zoom-aide"></span>';
     if (voisine(-1)) h += '<button class="fleche g" type="button" data-sens="-1" aria-label="Photo précédente">‹</button>';
     if (voisine(1)) h += '<button class="fleche d" type="button" data-sens="1" aria-label="Photo suivante">›</button>';
@@ -288,10 +293,10 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
     h += '<label for="f-aut">Votre prénom et votre nom</label><input id="f-aut" type="text" value="'+esc(nom)+'">';
     h += '<label for="f-pers">Qui est sur la photo</label><input id="f-pers" type="text" placeholder="Tapez un nom, puis Entrée" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="sugg"><ul class="sugg" id="sugg" role="listbox"></ul>';
     h += '<div class="indic">Une personne par saisie, de gauche à droite si possible. Dès deux lettres, des noms déjà connus sont proposés.</div><div class="puces" id="puces"></div>';
-    h += '<label for="f-date">Date</label><input id="f-date" type="text" placeholder="1910, été 1952, vers 1930…" value="'+esc(mien.date)+'">';
-    h += '<label for="f-lieu">Lieu</label><input id="f-lieu" type="text" value="'+esc(mien.lieu)+'">';
-    h += '<label for="f-occ">Occasion</label><input id="f-occ" type="text" placeholder="Mariage, communion, vacances…" value="'+esc(mien.occasion)+'">';
-    h += '<label for="f-souv">Un souvenir</label><textarea id="f-souv">'+esc(mien.souvenir)+'</textarea>';
+    h += '<label for="f-date">Date</label><input id="f-date" type="text" placeholder="1910, été 1952, vers 1930…" value="'+esc(vu.date)+'">';
+    h += '<label for="f-lieu">Lieu</label><input id="f-lieu" type="text" value="'+esc(vu.lieu)+'">';
+    h += '<label for="f-occ">Occasion</label><input id="f-occ" type="text" placeholder="Mariage, communion, vacances…" value="'+esc(vu.occasion)+'">';
+    h += '<label for="f-souv">Un souvenir</label><textarea id="f-souv">'+esc(vu.souvenir)+'</textarea>';
     h += '<div class="actions"><button id="f-ok" type="button" class="actif">Enregistrer pour la famille</button><span id="etat" role="status" aria-live="polite"></span></div></div>';
     fiche.innerHTML = h; fiche.classList.add('ouverte'); fiche.setAttribute('aria-hidden','false');
     image('f/'+z.id+'.bin').then(function(u){ var x = fiche.querySelector('#f-img'); if (x) x.src = u; }, function(){});
@@ -304,7 +309,7 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
     montrerApports();
     charger().then(montrerApports);
 
-    var pers = (mien.personnes||[]).slice(), puces = fiche.querySelector('#puces');
+    var pers = (vu.personnes||[]).slice(), puces = fiche.querySelector('#puces');
     function dessiner(){
       puces.innerHTML = pers.map(function(x,k){
         return '<span class="puce">'+(k+1)+'. '+esc(x)+'<button type="button" data-k="'+k+'" aria-label="Retirer '+esc(x)+'">×</button></span>'; }).join('');
@@ -333,6 +338,16 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
       else if (e.key==='Enter'){ e.preventDefault(); if (sel>=0) ip.value = props[sel]; ajouter(); }
       else if (e.key==='Escape'){ ul.innerHTML=''; props=[]; e.stopPropagation(); }
     });
+    // Leaving the photo keeps what was typed as a draft on this device, until it is saved
+    function releve(o){ return JSON.stringify([o.auteur||'', o.personnes||[], o.date||'', o.lieu||'', o.occasion||'', o.souvenir||'']); }
+    fiche._garder = function(){
+      var v = ip.value.trim(), r = {auteur:fiche.querySelector('#f-aut').value.trim(), personnes:pers.concat(v && pers.indexOf(v)<0 ? [v] : []),
+        date:fiche.querySelector('#f-date').value.trim(), lieu:fiche.querySelector('#f-lieu').value.trim(), occasion:fiche.querySelector('#f-occ').value.trim(), souvenir:fiche.querySelector('#f-souv').value.trim()};
+      var ref = {auteur:lire(AUTEUR)||'', personnes:mien.personnes, date:mien.date, lieu:mien.lieu, occasion:mien.occasion, souvenir:mien.souvenir};
+      if (releve(r) !== releve(ref) && releve(r) !== releve({auteur:r.auteur})) brouillons[z.id] = r; else delete brouillons[z.id];
+      ecrire(BROUILLONS, JSON.stringify(brouillons));
+    };
+    if (br){ var e0 = fiche.querySelector('#etat'); e0.textContent = 'Brouillon repris : pensez à l’enregistrer.'; }
     fiche.querySelector('.fermer').addEventListener('click', fermer);
     fiche.querySelector('#f-ok').addEventListener('click', async function(){
       ajouter();
@@ -349,6 +364,7 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
         var r = await fetch(CARNET + '/notes', {method:'POST', headers:{Authorization:'Bearer ' + JETON, 'Content-Type':'application/json'}, body:JSON.stringify(corps)});
         if (!r.ok) throw new Error(r.status);
         ecrire(AUTEUR, a.auteur);
+        mien = a; delete brouillons[z.id]; ecrire(BROUILLONS, JSON.stringify(brouillons));
         await charger(); montrerApports();
         etat.textContent = 'Enregistré, visible par toute la famille.';
       } catch(e){
@@ -425,7 +441,10 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
     cadre.addEventListener('wheel', function(e){ e.preventDefault(); zoomer(point(e), s * Math.exp(-e.deltaY * 0.004)); }, {passive:false});
     appliquer();
   }
-  function fermer(){ fiche.classList.remove('ouverte'); fiche.setAttribute('aria-hidden','true'); if (zoneCourante){ zoneCourante.classList.remove('choisie'); zoneCourante=null; } }
+  function fermer(){
+    if (fiche.classList.contains('ouverte') && fiche._garder) fiche._garder();
+    fiche._garder = null;
+    fiche.classList.remove('ouverte'); fiche.setAttribute('aria-hidden','true'); if (zoneCourante){ zoneCourante.classList.remove('choisie'); zoneCourante=null; } }
 
   document.getElementById('prec').addEventListener('click', function(){ afficher(i-1); });
   document.getElementById('suiv').addEventListener('click', function(){ afficher(i+1); });
