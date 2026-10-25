@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Albums de famille</title>
+<style>
+:root{--papier:#faf7f2;--carte:#fffdf9;--encre:#1c2b3a;--encre-2:#41546a;--encre-3:#8496a8;--rouille:#8c4a32;--filet:#e0d8cb;--fond-album:#2a2422;--vert:#4d806d}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--papier:#11161c;--carte:#1a212a;--encre:#e8e2d6;--encre-2:#aeb9c5;--encre-3:#788595;--rouille:#d08a6a;--filet:#2a343f;--fond-album:#0b0d10;--vert:#7ec4a8}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--papier);color:var(--encre);font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;line-height:1.4}
+.sans{font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif}
+[hidden]{display:none!important}
+#verrou{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+#verrou form{width:100%;max-width:26rem;background:var(--carte);border:1px solid var(--filet);border-radius:4px;padding:1.6rem 1.4rem}
+#verrou p{color:var(--encre-2);font-size:.95rem}
+#verrou input[type=text]{font-size:1rem;margin:.4rem 0 .8rem}
+#verrou .case{display:flex;gap:.5rem;align-items:center;text-transform:none;letter-spacing:0;font-size:.85rem;font-weight:400;color:var(--encre-2);margin:0 0 1rem}
+#verrou button{width:100%;font-size:1rem;padding:.6rem;background:var(--rouille);border-color:var(--rouille);color:#fff}
+#verrou-etat{min-height:1.4em;font-size:.88rem;margin:.8rem 0 0}
+header{padding:1.2rem clamp(1rem,2.5vw,2rem) .6rem;border-bottom:1px solid var(--filet)}
+.eyebrow{font-size:.66rem;letter-spacing:.15em;text-transform:uppercase;color:var(--encre-3);margin:0 0 .3rem}
+h1{font-size:clamp(1.3rem,2.6vw,1.9rem);font-weight:600;margin:0}
+.aide{color:var(--encre-2);font-size:.88rem;font-style:italic;margin:.35rem 0 0}
+.bar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;padding:.7rem clamp(1rem,2.5vw,2rem)}
+button,.btn{font:inherit;font-size:.78rem;padding:.42rem .75rem;cursor:pointer;border:1px solid var(--filet);background:var(--carte);color:var(--encre-2);border-radius:3px}
+button:hover{border-color:var(--encre-3);color:var(--encre)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--rouille);outline-offset:1px}
+button.actif{border-color:var(--rouille);color:var(--rouille)}
+#num{font-size:.8rem;color:var(--encre-3);font-variant-numeric:tabular-nums;min-width:7rem;text-align:center}
+#carnet-etat{font-size:.75rem;color:var(--encre-3)}
+.vue{padding:0 clamp(1rem,2.5vw,2rem) 1rem}
+.cadre{background:var(--fond-album);border-radius:4px;padding:.6rem;display:flex;justify-content:center}
+.pagebox{position:relative;width:100%;max-width:min(100%,calc((100vh - 15rem) * 1.29));min-height:12rem}
+.pagebox img{display:block;width:100%;height:auto;user-select:none}
+.zone{position:absolute;border:2px solid transparent;border-radius:2px;cursor:pointer;background:transparent;padding:0;transition:border-color .12s,background .12s}
+.zone:hover,.zone:focus-visible{border-color:#f0c27a;background:rgba(240,194,122,.12);outline:none}
+.zone.choisie{border-color:#f0c27a;background:rgba(240,194,122,.18)}
+.zone .pt{position:absolute;top:6px;right:6px;min-width:16px;height:16px;border-radius:8px;background:#7ec48a;border:2px solid #fff;display:none;font:600 .6rem/12px ui-sans-serif,-apple-system,sans-serif;color:#1c2b3a;padding:0 3px}
+.zone.annotee .pt{display:block}
+.vignettes{display:flex;gap:.4rem;overflow-x:auto;padding:.7rem clamp(1rem,2.5vw,2rem) 1.6rem}
+.vignettes button{padding:0;border:2px solid transparent;flex:0 0 auto;background:var(--fond-album);position:relative;min-width:44px;height:62px}
+.vignettes button.actif{border-color:var(--rouille)}
+.vignettes img{display:block;height:58px;width:auto}
+.vignettes .sep{flex:0 0 auto;align-self:center;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--encre-3);padding:0 .3rem}
+#fiche{position:fixed;inset:0;z-index:10;background:var(--carte);display:none;grid-template-columns:1fr minmax(20rem,28rem)}
+#fiche.ouverte{display:grid}
+#fiche .grande{background:var(--fond-album);display:flex;align-items:center;justify-content:center;padding:1rem;min-height:0}
+#fiche .grande img{max-width:100%;max-height:calc(100vh - 2rem);object-fit:contain;display:block;box-shadow:0 2px 18px rgba(0,0,0,.4)}
+#fiche .form{position:relative;overflow-y:auto;padding:3rem 1.3rem 2rem;border-left:1px solid var(--filet)}
+@media (max-width:760px){#fiche{grid-template-columns:1fr;grid-template-rows:55vh auto;overflow-y:auto}#fiche .grande img{max-height:calc(55vh - 2rem)}#fiche .form{overflow-y:visible}}
+#fiche .fermer{position:absolute;top:.8rem;right:.8rem;font-size:.9rem;padding:.5rem .9rem;border-color:var(--encre-3);color:var(--encre)}
+#fiche h2{font-size:1.2rem;margin:.1rem 0 .7rem;font-weight:600}
+#fiche h3{font-size:.95rem;margin:1.4rem 0 .5rem;font-weight:600;border-top:1px solid var(--filet);padding-top:1rem}
+.meta{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--encre-3);margin:0}
+.legende{background:var(--papier);border-left:3px solid var(--rouille);padding:.5rem .7rem;font-size:.9rem;margin:0 0 .9rem}
+.legende small{display:block;font-size:.7rem;color:var(--encre-3);margin-top:.25rem;font-style:italic}
+.apport{background:var(--papier);border:1px solid var(--filet);border-radius:3px;padding:.6rem .75rem;margin:0 0 .6rem;font-size:.88rem}
+.apport .qui{font-size:.72rem;color:var(--encre-3);margin:0 0 .35rem}
+.apport .qui b{color:var(--encre-2)}
+.apport dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:.15rem .6rem}
+.apport dt{color:var(--encre-3);font-size:.75rem}
+.apport dd{margin:0;white-space:pre-wrap}
+.vide{font-size:.85rem;color:var(--encre-3);font-style:italic}
+label{display:block;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--encre-3);margin:.85rem 0 .3rem;font-weight:600}
+input[type=text],textarea{width:100%;font:inherit;font-size:.92rem;padding:.45rem .55rem;border:1px solid var(--filet);border-radius:3px;background:var(--papier);color:var(--encre)}
+textarea{min-height:5rem;resize:vertical}
+.puces{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.4rem}
+.puce{font-size:.82rem;padding:.15rem .45rem;border-radius:2px;background:var(--papier);border:1px solid var(--filet);display:inline-flex;gap:.35rem;align-items:center}
+.puce button{border:0;padding:0 .1rem;background:none;font-size:.9rem;line-height:1}
+.sugg{list-style:none;margin:.2rem 0 0;padding:0;border:1px solid var(--filet);border-radius:3px;background:var(--carte);max-height:14rem;overflow-y:auto}
+.sugg:empty{display:none}
+.sugg li{padding:.35rem .55rem;font-size:.9rem;cursor:pointer}
+.sugg li.sel,.sugg li:hover{background:var(--papier);color:var(--rouille)}
+.indic{font-size:.72rem;color:var(--encre-3);margin-top:.3rem}
+.actions{display:flex;gap:.5rem;margin-top:1.1rem;align-items:center;flex-wrap:wrap}
+#etat{font-size:.78rem;color:var(--vert)}
+#etat.erreur,#verrou-etat.erreur{color:#b4452f}
+footer{border-top:1px solid var(--filet);margin:0 clamp(1rem,2.5vw,2rem);padding:1rem 0 2rem;font-size:.75rem;color:var(--encre-3)}
+footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
+</style>
+</head>
+<body>
+<div id="verrou" class="sans">
+  <form id="verrou-form" autocomplete="off">
+    <p class="eyebrow">Famille Wallut</p>
+    <h1>Albums de famille</h1>
+    <p>Ces albums sont réservés à la famille. Entrez la phrase de passe qui vous a été transmise, la même que pour l'arbre.</p>
+    <label for="phrase">Phrase de passe</label>
+    <input id="phrase" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off">
+    <label class="case"><input id="memo" type="checkbox" checked> Se souvenir de moi sur cet appareil</label>
+    <button type="submit">Entrer</button>
+    <p id="verrou-etat" role="status" aria-live="polite"></p>
+  </form>
+</div>
+<div id="app" hidden>
+<header>
+  <p class="eyebrow sans">Albums de famille · Laure Fuller</p>
+  <h1 id="titre">Albums de famille</h1>
+  <p class="aide">Cliquez sur une photo pour voir ce que la famille en sait, et y ajouter ce que vous savez. Les flèches du clavier tournent les pages.</p>
+</header>
+<div class="bar sans">
+  <button id="prec" type="button" aria-label="Page précédente">← Page précédente</button>
+  <span id="num" role="status" aria-live="polite"></span>
+  <button id="suiv" type="button" aria-label="Page suivante">Page suivante →</button>
+  <span style="flex:1"></span>
+  <span id="carnet-etat"></span>
+  <button id="exporter" type="button">Télécharger les annotations</button>
+</div>
+<div class="vue"><div class="cadre"><div class="pagebox" id="pagebox"><img id="pageimg" alt=""></div></div></div>
+<div class="vignettes sans" id="vignettes"></div>
+<aside id="fiche" class="sans" aria-hidden="true" aria-label="Fiche de la photo"></aside>
+<footer class="sans">Les annotations sont partagées avec toute la famille et chiffrées par la phrase de passe. Un point vert sur une photo indique combien de personnes l'ont annotée.<button id="oublier" type="button">Oublier la phrase sur cet appareil</button></footer>
+</div>
+<script>
+(function(){
+  var SEL = '063bbaa973ff04b3b3002baf6cd37ce4', ITER = 600000, CARNET = 'https://carnet-albums-wallut.jeromew13.workers.dev', MEMO = 'albums-wallut-cle', AUTEUR = 'albums-wallut-auteur';
+  var te = new TextEncoder(), td = new TextDecoder(), S = crypto.subtle;
+  var K = null, JETON = '', HM = null, D = null;
+  function hex(u){ return Array.from(u, function(b){ return b.toString(16).padStart(2,'0'); }).join(''); }
+  function unhex(s){ return new Uint8Array(s.match(/../g).map(function(h){ return parseInt(h,16); })); }
+  function b64(u){ var s=''; for (var k=0;k<u.length;k+=8192) s += String.fromCharCode.apply(null, u.subarray(k,k+8192)); return btoa(s); }
+  function unb64(s){ return Uint8Array.from(atob(s), function(c){ return c.charCodeAt(0); }); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function lire(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function ecrire(k,v){ try { v==null ? localStorage.removeItem(k) : localStorage.setItem(k,v); } catch(e){} }
+  // Same normalization as chiffrer-albums.py: case and extra spaces typed on a phone do not matter
+  function normaliser(p){ return p.normalize('NFC').trim().split(/\s+/).join(' ').toLowerCase(); }
+
+  // --- keys: PBKDF2 of the passphrase, then HKDF for encryption, notebook token and author ids
+  async function base(phrase){
+    var m = await S.importKey('raw', te.encode(normaliser(phrase)), 'PBKDF2', false, ['deriveBits']);
+    return new Uint8Array(await S.deriveBits({name:'PBKDF2', hash:'SHA-256', salt:te.encode(SEL), iterations:ITER}, m, 256));
+  }
+  async function preparer(b){
+    var hk = await S.importKey('raw', b, 'HKDF', false, ['deriveKey','deriveBits']);
+    function p(info){ return {name:'HKDF', hash:'SHA-256', salt:new Uint8Array(0), info:te.encode(info)}; }
+    K = await S.deriveKey(p('albums-chiffrement'), hk, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+    JETON = hex(new Uint8Array(await S.deriveBits(p('albums-jeton'), hk, 256)));
+    HM = await S.deriveKey(p('albums-auteur'), hk, {name:'HMAC', hash:'SHA-256', length:256}, false, ['sign']);
+  }
+  async function dechiffrer(buf){ var u = new Uint8Array(buf); return S.decrypt({name:'AES-GCM', iv:u.slice(0,12)}, K, u.slice(12)); }
+  async function chiffrer(u){
+    var iv = crypto.getRandomValues(new Uint8Array(12)), c = new Uint8Array(await S.encrypt({name:'AES-GCM', iv:iv}, K, u));
+    var o = new Uint8Array(12 + c.length); o.set(iv); o.set(c, 12); return o;
+  }
+  async function idAuteur(nom){ return hex(new Uint8Array(await S.sign('HMAC', HM, te.encode(normaliser(nom))))); }
+  async function fichier(chemin){ var r = await fetch(chemin); if (!r.ok) throw new Error(chemin); return dechiffrer(await r.arrayBuffer()); }
+  var cache = {};
+  function image(chemin){
+    if (!cache[chemin]) cache[chemin] = fichier(chemin).then(function(b){ return URL.createObjectURL(new Blob([b], {type:'image/jpeg'})); });
+    return cache[chemin];
+  }
+
+  // --- unlock
+  var form = document.getElementById('verrou-form'), etatV = document.getElementById('verrou-etat');
+  async function ouvrirAvec(b){
+    await preparer(b);
+    D = JSON.parse(td.decode(await fichier('d.bin')));
+  }
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    var ph = document.getElementById('phrase').value;
+    if (!ph.trim()) return;
+    etatV.className = ''; etatV.textContent = 'Ouverture…';
+    try {
+      var b = await base(ph);
+      await ouvrirAvec(b);
+    } catch(err){
+      etatV.className = 'erreur';
+      etatV.textContent = err instanceof TypeError ? 'Le site ne répond pas : vérifiez votre connexion, puis réessayez.' : 'Phrase de passe incorrecte.';
+      return;
+    }
+    if (document.getElementById('memo').checked) ecrire(MEMO, hex(b));
+    demarrer();
+  });
+  document.getElementById('oublier').addEventListener('click', function(){ ecrire(MEMO, null); location.reload(); });
+
+  // --- shared notebook: encrypted contributions, the latest of each author per photo counts
+  var apports = [], dernier = 0, etatC = null;
+  async function charger(){
+    try {
+      var r = await fetch(CARNET + '/notes?depuis=' + dernier, {headers:{Authorization:'Bearer ' + JETON}});
+      if (!r.ok) throw new Error(r.status);
+      var lignes = await r.json();
+      for (var k=0; k<lignes.length; k++){
+        var l = lignes[k];
+        dernier = Math.max(dernier, l.id);
+        try {
+          var c = JSON.parse(td.decode(await dechiffrer(unb64(l.contenu))));
+          if (c.photo !== l.photo) continue;
+          c.id = l.id; c.auteurId = l.auteur; c.cree = l.cree; apports.push(c);
+        } catch(e){}
+      }
+      etatC.textContent = '';
+      marquer();
+    } catch(e){ etatC.textContent = 'Le carnet partagé ne répond pas pour l’instant.'; }
+  }
+  function surPhoto(id){
+    var m = {};
+    apports.forEach(function(a){ if (a.photo === id) m[a.auteurId] = a; });
+    return Object.keys(m).map(function(k){ return m[k]; }).sort(function(a,b){ return a.cree - b.cree; });
+  }
+  function marquer(){
+    box.querySelectorAll('.zone').forEach(function(z){
+      var n = surPhoto(z.dataset.id).length;
+      z.classList.toggle('annotee', n > 0); z.querySelector('.pt').textContent = n || '';
+    });
+  }
+
+  var P, i = 0, box = document.getElementById('pagebox'), img = document.getElementById('pageimg');
+  var fiche = document.getElementById('fiche'), vig = document.getElementById('vignettes'), zoneCourante = null;
+
+  function demarrer(){
+    document.getElementById('verrou').hidden = true; document.getElementById('app').hidden = false;
+    etatC = document.getElementById('carnet-etat');
+    P = D.pages;
+    var album = null;
+    P.forEach(function(p,k){
+      if (p.album !== album){ album = p.album; var s=document.createElement('span'); s.className='sep'; s.textContent=album; vig.appendChild(s); }
+      var b = document.createElement('button'); b.type='button'; b.setAttribute('aria-label', p.album+', page '+p.page);
+      var im = document.createElement('img'); im.alt = ''; b.appendChild(im);
+      image('v/'+p.code+'.bin').then(function(u){ im.src = u; }, function(){});
+      b.addEventListener('click', function(){ afficher(k); });
+      vig.appendChild(b);
+    });
+    afficher(0);
+    charger();
+    setInterval(charger, 120000);
+  }
+
+  function afficher(k){
+    i = Math.max(0, Math.min(P.length-1, k));
+    var p = P[i], ici = i;
+    fermer();
+    img.removeAttribute('src'); img.alt = p.album + ', page ' + p.page;
+    image('p/'+p.code+'.bin').then(function(u){ if (ici === i) img.src = u; }, function(){});
+    [i-1, i+1].forEach(function(j){ if (P[j]) image('p/'+P[j].code+'.bin').catch(function(){}); });
+    document.getElementById('titre').textContent = p.album;
+    document.getElementById('num').textContent = 'Page ' + p.page + ' · ' + (i+1) + ' sur ' + P.length;
+    box.querySelectorAll('.zone').forEach(function(z){ z.remove(); });
+    p.zones.forEach(function(z, n){
+      var b = document.createElement('button');
+      b.type='button'; b.className='zone';
+      b.style.left=z.x+'%'; b.style.top=z.y+'%'; b.style.width=z.w+'%'; b.style.height=z.h+'%';
+      b.setAttribute('aria-label','Photo '+(n+1)+' de la page'); b.dataset.id = z.id;
+      b.innerHTML='<span class="pt"></span>';
+      b.addEventListener('click', function(){ ouvrir(z, n, b); });
+      box.appendChild(b);
+    });
+    marquer();
+    vig.querySelectorAll('button').forEach(function(b,k){ b.classList.toggle('actif', k===i); });
+    var actif = vig.querySelector('button.actif'); if (actif) actif.scrollIntoView({block:'nearest', inline:'nearest'});
+    document.getElementById('prec').disabled = i===0; document.getElementById('suiv').disabled = i===P.length-1;
+  }
+
+  function carte(a){
+    var lignes = [['Qui', (a.personnes||[]).map(function(x,k){ return (k+1)+'. '+x; }).join(', ')], ['Date', a.date], ['Lieu', a.lieu], ['Occasion', a.occasion], ['Souvenir', a.souvenir]];
+    var quand = new Date(a.cree).toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'});
+    return '<div class="apport"><p class="qui"><b>'+esc(a.auteur)+'</b> · '+esc(quand)+'</p><dl>' +
+      lignes.filter(function(l){ return l[1]; }).map(function(l){ return '<dt>'+l[0]+'</dt><dd>'+esc(l[1])+'</dd>'; }).join('') + '</dl></div>';
+  }
+
+  async function ouvrir(z, n, el){
+    var p = P[i];
+    if (zoneCourante) zoneCourante.classList.remove('choisie');
+    zoneCourante = el; el.classList.add('choisie');
+    var nom = lire(AUTEUR) || '', moi = nom ? await idAuteur(nom) : '';
+    var mien = surPhoto(z.id).filter(function(a){ return a.auteurId === moi; })[0] || {personnes:[]};
+    var h = '<div class="grande"><img id="f-img" alt="Photo '+(n+1)+', page '+p.page+'"></div><div class="form">';
+    h += '<button class="fermer" type="button">Fermer ✕</button>';
+    h += '<p class="meta">'+esc(p.album)+' · page '+p.page+'</p><h2>Photo '+(n+1)+'</h2>';
+    if (p.legende) h += '<div class="legende">'+esc(p.legende)+'<small>Légende manuscrite de la page, recopiée depuis le scan : à vérifier.</small></div>';
+    h += '<h3>Ce que la famille en dit</h3><div id="apports"></div>';
+    h += '<h3>Ce que vous en savez</h3>';
+    h += '<label for="f-aut">Votre prénom et votre nom</label><input id="f-aut" type="text" value="'+esc(nom)+'">';
+    h += '<label for="f-pers">Qui est sur la photo</label><input id="f-pers" type="text" placeholder="Tapez un nom, puis Entrée" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="sugg"><ul class="sugg" id="sugg" role="listbox"></ul>';
+    h += '<div class="indic">Une personne par saisie, de gauche à droite si possible. Dès deux lettres, des noms déjà connus sont proposés.</div><div class="puces" id="puces"></div>';
+    h += '<label for="f-date">Date</label><input id="f-date" type="text" placeholder="1910, été 1952, vers 1930…" value="'+esc(mien.date)+'">';
+    h += '<label for="f-lieu">Lieu</label><input id="f-lieu" type="text" value="'+esc(mien.lieu)+'">';
+    h += '<label for="f-occ">Occasion</label><input id="f-occ" type="text" placeholder="Mariage, communion, vacances…" value="'+esc(mien.occasion)+'">';
+    h += '<label for="f-souv">Un souvenir</label><textarea id="f-souv">'+esc(mien.souvenir)+'</textarea>';
+    h += '<div class="actions"><button id="f-ok" type="button" class="actif">Enregistrer pour la famille</button><span id="etat" role="status" aria-live="polite"></span></div></div>';
+    fiche.innerHTML = h; fiche.classList.add('ouverte'); fiche.setAttribute('aria-hidden','false');
+    image('f/'+z.id+'.bin').then(function(u){ var x = fiche.querySelector('#f-img'); if (x) x.src = u; }, function(){});
+    function montrerApports(){
+      var l = surPhoto(z.id), zone = fiche.querySelector('#apports');
+      if (zone) zone.innerHTML = l.length ? l.map(carte).join('') : '<p class="vide">Personne n’a encore annoté cette photo.</p>';
+    }
+    montrerApports();
+    charger().then(montrerApports);
+
+    var pers = (mien.personnes||[]).slice(), puces = fiche.querySelector('#puces');
+    function dessiner(){
+      puces.innerHTML = pers.map(function(x,k){
+        return '<span class="puce">'+(k+1)+'. '+esc(x)+'<button type="button" data-k="'+k+'" aria-label="Retirer '+esc(x)+'">×</button></span>'; }).join('');
+      puces.querySelectorAll('button').forEach(function(b){ b.addEventListener('click', function(){ pers.splice(+b.dataset.k,1); dessiner(); }); });
+    }
+    dessiner();
+    var ip = fiche.querySelector('#f-pers'), ul = fiche.querySelector('#sugg'), sel = -1, props = [];
+    function ajouter(){ var v=ip.value.trim(); if (v && pers.indexOf(v)<0){ pers.push(v); dessiner(); } ip.value=''; ul.innerHTML=''; props=[]; }
+    // Autocomplete: names of the tree and names already given by the family, accents ignored
+    function sansAccent(s){ return s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
+    function connus(){ var s = new Set(D.noms); apports.forEach(function(a){ (a.personnes||[]).forEach(function(x){ s.add(x); }); }); return Array.from(s); }
+    function proposer(){
+      var q = sansAccent(ip.value.trim()); sel = -1;
+      if (q.length < 2){ props = []; ul.innerHTML=''; return; }
+      props = connus().filter(function(n){ return sansAccent(n).split(/[\s-]+/).some(function(m){ return m.indexOf(q)===0; }) || sansAccent(n).indexOf(q)===0; })
+        .filter(function(n){ return pers.indexOf(n)<0; }).sort().slice(0,8);
+      ul.innerHTML = props.map(function(n,k){ return '<li role="option" data-k="'+k+'">'+esc(n)+'</li>'; }).join('');
+      ul.querySelectorAll('li').forEach(function(li){ li.addEventListener('mousedown', function(e){ e.preventDefault(); ip.value = props[+li.dataset.k]; ajouter(); }); });
+    }
+    function marquerSel(){ ul.querySelectorAll('li').forEach(function(li,k){ li.classList.toggle('sel', k===sel); }); }
+    ip.addEventListener('input', proposer);
+    ip.addEventListener('blur', function(){ setTimeout(function(){ ul.innerHTML=''; }, 150); });
+    ip.addEventListener('keydown', function(e){
+      if (e.key==='ArrowDown' && props.length){ e.preventDefault(); sel = Math.min(props.length-1, sel+1); marquerSel(); }
+      else if (e.key==='ArrowUp' && props.length){ e.preventDefault(); sel = Math.max(0, sel-1); marquerSel(); }
+      else if (e.key==='Enter'){ e.preventDefault(); if (sel>=0) ip.value = props[sel]; ajouter(); }
+      else if (e.key==='Escape'){ ul.innerHTML=''; props=[]; e.stopPropagation(); }
+    });
+    fiche.querySelector('.fermer').addEventListener('click', fermer);
+    fiche.querySelector('#f-ok').addEventListener('click', async function(){
+      ajouter();
+      var etat = fiche.querySelector('#etat'), btn = this;
+      var a = {photo:z.id, auteur:fiche.querySelector('#f-aut').value.trim(), personnes:pers.slice(), date:fiche.querySelector('#f-date').value.trim(),
+        lieu:fiche.querySelector('#f-lieu').value.trim(), occasion:fiche.querySelector('#f-occ').value.trim(), souvenir:fiche.querySelector('#f-souv').value.trim(),
+        album:p.album, page:p.page, numero:n+1};
+      etat.className = '';
+      if (!a.auteur){ etat.className = 'erreur'; etat.textContent = 'Indiquez votre nom, pour que la famille sache qui a annoté.'; return; }
+      if (!a.personnes.length && !a.date && !a.lieu && !a.occasion && !a.souvenir){ etat.className = 'erreur'; etat.textContent = 'La fiche est vide.'; return; }
+      btn.disabled = true; etat.textContent = 'Enregistrement…';
+      try {
+        var corps = {photo:z.id, auteur:await idAuteur(a.auteur), contenu:b64(await chiffrer(te.encode(JSON.stringify(a))))};
+        var r = await fetch(CARNET + '/notes', {method:'POST', headers:{Authorization:'Bearer ' + JETON, 'Content-Type':'application/json'}, body:JSON.stringify(corps)});
+        if (!r.ok) throw new Error(r.status);
+        ecrire(AUTEUR, a.auteur);
+        await charger(); montrerApports();
+        etat.textContent = 'Enregistré, visible par toute la famille.';
+      } catch(e){
+        etat.className = 'erreur'; etat.textContent = 'Le carnet partagé ne répond pas : rien n’a été enregistré. Réessayez dans un moment, la fiche reste remplie.';
+      }
+      btn.disabled = false;
+    });
+  }
+  function fermer(){ fiche.classList.remove('ouverte'); fiche.setAttribute('aria-hidden','true'); if (zoneCourante){ zoneCourante.classList.remove('choisie'); zoneCourante=null; } }
+
+  document.getElementById('prec').addEventListener('click', function(){ afficher(i-1); });
+  document.getElementById('suiv').addEventListener('click', function(){ afficher(i+1); });
+  document.addEventListener('keydown', function(e){
+    if (!P || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+    if (e.key==='ArrowRight') afficher(i+1); else if (e.key==='ArrowLeft') afficher(i-1); else if (e.key==='Escape') fermer();
+  });
+  document.getElementById('exporter').addEventListener('click', function(){
+    var tout = [];
+    P.forEach(function(p){ p.zones.forEach(function(z){ surPhoto(z.id).forEach(function(a){
+      tout.push({album:a.album, page:a.page, photo:a.numero, auteur:a.auteur, le:new Date(a.cree).toISOString().slice(0,10), personnes:a.personnes, date:a.date, lieu:a.lieu, occasion:a.occasion, souvenir:a.souvenir});
+    }); }); });
+    var blob = new Blob([JSON.stringify(tout,null,2)], {type:'application/json'});
+    var l = document.createElement('a'); l.href = URL.createObjectURL(blob);
+    l.download = 'annotations-albums-' + new Date().toISOString().slice(0,10) + '.json'; l.click();
+  });
+
+  // remembered key: open directly, fall back to the passphrase if it no longer works
+  var memo = lire(MEMO);
+  if (memo) ouvrirAvec(unhex(memo)).then(demarrer, function(){ ecrire(MEMO, null); });
+})();
+</script>
+</body>
+</html>
