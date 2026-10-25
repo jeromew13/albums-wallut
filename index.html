@@ -29,11 +29,12 @@ button,.btn{font:inherit;font-size:.78rem;padding:.42rem .75rem;cursor:pointer;b
 button:hover{border-color:var(--encre-3);color:var(--encre)}
 button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--rouille);outline-offset:1px}
 button.actif{border-color:var(--rouille);color:var(--rouille)}
-#num{font-size:.8rem;color:var(--encre-3);font-variant-numeric:tabular-nums;min-width:7rem;text-align:center}
+#num{font-size:.8rem;color:var(--encre-3);font-variant-numeric:tabular-nums}
 #carnet-etat{font-size:.75rem;color:var(--encre-3)}
 .vue{padding:0 clamp(1rem,2.5vw,2rem) 1rem}
-.cadre{background:var(--fond-album);border-radius:4px;padding:.6rem;display:flex;justify-content:center}
-.pagebox{position:relative;width:100%;max-width:min(100%,calc((100vh - 15rem) * 1.29));min-height:12rem}
+.cadre{position:relative;background:var(--fond-album);border-radius:4px;padding:.6rem 4rem;display:flex;justify-content:center}
+@media (max-width:760px){.cadre{padding:.6rem}.cadre .fleche{width:2.2rem;height:2.2rem;font-size:1.8rem;opacity:.8}.cadre .fleche.g{left:.2rem}.cadre .fleche.d{right:.2rem}}
+.pagebox{position:relative;width:100%;max-width:min(100%,calc((100vh - 20rem) * 1.29));min-height:12rem}
 .pagebox img{display:block;width:100%;height:auto;user-select:none}
 .zone{position:absolute;border:2px solid transparent;border-radius:2px;cursor:pointer;background:transparent;padding:0;transition:border-color .12s,background .12s}
 .zone:hover,.zone:focus-visible{border-color:#f0c27a;background:rgba(240,194,122,.12);outline:none}
@@ -41,9 +42,9 @@ button.actif{border-color:var(--rouille);color:var(--rouille)}
 .zone .pt{position:absolute;top:6px;right:6px;min-width:16px;height:16px;border-radius:8px;background:#7ec48a;border:2px solid #fff;display:none;font:600 .6rem/12px ui-sans-serif,-apple-system,sans-serif;color:#1c2b3a;padding:0 3px}
 .zone.annotee .pt{display:block}
 .vignettes{display:flex;gap:.4rem;overflow-x:auto;padding:.7rem clamp(1rem,2.5vw,2rem) 1.6rem}
-.vignettes button{padding:0;border:2px solid transparent;flex:0 0 auto;background:var(--fond-album);position:relative;min-width:44px;height:62px}
+.vignettes button{padding:0;border:2px solid transparent;flex:0 0 auto;background:var(--fond-album);position:relative;min-width:44px;height:74px}
 .vignettes button.actif{border-color:var(--rouille)}
-.vignettes img{display:block;height:58px;width:auto}
+.vignettes img{display:block;height:70px;width:auto}
 .vignettes .sep{flex:0 0 auto;align-self:center;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--encre-3);padding:0 .3rem}
 #fiche{position:fixed;inset:0;z-index:10;background:var(--carte);display:none;grid-template-columns:1fr minmax(20rem,28rem)}
 #fiche.ouverte{display:grid}
@@ -55,6 +56,7 @@ button.actif{border-color:var(--rouille);color:var(--rouille)}
 .fleche{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:3rem;height:3rem;border-radius:50%;border:2px solid rgba(255,255,255,.85);padding:0 0 .25rem;background:rgba(0,0,0,.55);color:#fff;font:400 2.4rem/1 Georgia,serif;text-align:center}
 .fleche:hover{background:rgba(0,0,0,.75);color:#fff}
 .fleche.g{left:.6rem}.fleche.d{right:.6rem}
+.fleche:disabled{opacity:.2;cursor:default}
 .zoom-aide{position:absolute;bottom:.6rem;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;font-size:.75rem;padding:.25rem .65rem;border-radius:3px;pointer-events:none;white-space:nowrap}
 #fiche .form{position:relative;overflow-y:auto;padding:3rem 1.3rem 2rem;border-left:1px solid var(--filet)}
 @media (max-width:760px){#fiche{grid-template-columns:1fr;grid-template-rows:55vh auto;overflow-y:auto}#fiche .grande img{max-height:calc(55vh - 2rem)}#fiche .form{overflow-y:visible}}
@@ -106,17 +108,15 @@ footer button{font-size:.72rem;padding:.2rem .5rem;margin-left:.4rem}
 <header>
   <p class="eyebrow sans">Albums de famille · Laure Fuller</p>
   <h1 id="titre">Albums de famille</h1>
-  <p class="aide">Cliquez sur une photo pour voir ce que la famille en sait, et y ajouter ce que vous savez. Les flèches du clavier tournent les pages.</p>
+  <p class="aide">Cliquez sur une photo pour voir ce que la famille en sait, et y ajouter ce que vous savez. Les flèches de part et d’autre de la page, ou celles du clavier, tournent les pages.</p>
 </header>
 <div class="bar sans">
-  <button id="prec" type="button" aria-label="Page précédente">← Page précédente</button>
   <span id="num" role="status" aria-live="polite"></span>
-  <button id="suiv" type="button" aria-label="Page suivante">Page suivante →</button>
   <span style="flex:1"></span>
   <span id="carnet-etat"></span>
   <button id="exporter" type="button">Télécharger les annotations</button>
 </div>
-<div class="vue"><div class="cadre"><div class="pagebox" id="pagebox"><img id="pageimg" alt=""></div></div></div>
+<div class="vue"><div class="cadre"><button id="prec" class="fleche g" type="button" aria-label="Page précédente">‹</button><div class="pagebox" id="pagebox"><img id="pageimg" alt=""></div><button id="suiv" class="fleche d" type="button" aria-label="Page suivante">›</button></div></div>
 <div class="vignettes sans" id="vignettes"></div>
 <aside id="fiche" class="sans" aria-hidden="true" aria-label="Fiche de la photo"></aside>
 <footer class="sans">Les annotations sont partagées avec toute la famille et chiffrées par la phrase de passe. Un point vert sur une photo indique combien de personnes l'ont annotée.<button id="oublier" type="button">Oublier la phrase sur cet appareil</button></footer>
